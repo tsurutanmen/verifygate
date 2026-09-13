@@ -1,0 +1,10 @@
+{
+  "id": "remove-decorative-emoji",
+  "objective": "Remove decorative emoji from the admin templates. Emoji that are the label itself - a close button, a heart on a like count - are not decorative and stay.",
+  "cwd": "C:/work/portal-site",
+  "verify": "python tools/count_emoji.py --max 0 --keep-file tools/keep.txt",
+  "notes": "An emoji can be two code points: a base character plus U+FE0F. Counting only the base leaves invisible leftovers behind. U+200D joins sequences.",
+  "must_keep": ["\u2715", "\u2764"],
+  "expect": "remove",
+  "forbid": ["Do not touch anything under docs/"]
+}

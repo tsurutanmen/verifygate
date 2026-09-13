@@ -1,0 +1,31 @@
+name: test
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+        python-version: ["3.9", "3.12"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+      - run: git config --global user.email ci@example.com
+      - run: git config --global user.name ci
+      - run: git config --global init.defaultBranch work
+      - run: pip install -e ".[test]"
+      - run: pytest -q
+      - name: an order with no check must be refused
+        shell: bash
+        run: |
+          if verifygate check examples/no-check.json; then
+            echo "an order with no verify was accepted"; exit 1
+          fi
