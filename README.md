@@ -188,6 +188,13 @@ verifygate guard   --keep STR -- files
 
 Exit codes: `0` passed, `1` held, `2` the order or the repository was refused.
 
+`list --json` and `show <run-id> --json` print the record and nothing else, for
+a pipeline that needs to read the verdict rather than a table.
+
+```
+verifygate show "$RUN" --json | jq -r '.findings[] | select(.status=="fail") | .name'
+```
+
 ## The implementer
 
 By default `verifygate` invokes the **Codex CLI** (`codex exec`), passing the
@@ -226,6 +233,25 @@ Python 3.9+. No dependencies beyond the standard library and `git` on PATH.
 
 `skill/verifygate/SKILL.md` teaches Claude Code when to reach for this. Copy it
 to `~/.claude/skills/verifygate/`.
+
+## What happened the first time this was pointed at a real agent
+
+The tool gated a change to itself: the tests in `tests/test_json_output.py`
+were written first, confirmed red, committed, and then the job was delegated.
+
+Run one — the implementer exited 127. `codex` is on PATH and runs from a
+terminal, but npm installs it on Windows as `codex.CMD`, and `subprocess`
+without a shell does not apply `PATHEXT`. It looked exactly like the CLI was
+not installed. Fixed by resolving the executable through `shutil.which`, with a
+regression test.
+
+Run two — the implementer exited 1: the account had hit its usage limit.
+
+Neither run produced a line of code, and that is the part worth reporting: both
+were held, nothing was committed, the working copy was untouched, and the
+`vacuous` guard confirmed on both runs that the check was red to begin with. A
+gate earns its keep on the runs that fail, and most of them fail for reasons
+that have nothing to do with the code.
 
 ## Limits
 
