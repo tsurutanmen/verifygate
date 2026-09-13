@@ -172,3 +172,26 @@ def test_a_missing_implementer_is_reported_not_crashed(repo, tmp_path):
     assert res.implementer.code == 127
     assert "not found" in res.implementer.stderr
     assert not res.passed
+
+
+def test_a_windows_shim_on_path_is_resolved():
+    """A bare name must be turned into a full path before subprocess sees it.
+
+    npm installs its tools as name.CMD on Windows; subprocess without a shell
+    does not apply PATHEXT, so the bare name fails as 'not found' even though
+    it runs from a terminal.
+    """
+    from verifygate.runner import resolve_executable
+    got = resolve_executable("git")
+    assert os.path.sep in got or os.path.altsep and os.path.altsep in got
+    assert os.path.isfile(got)
+
+
+def test_an_absolute_path_is_left_alone():
+    from verifygate.runner import resolve_executable
+    assert resolve_executable(sys.executable) == sys.executable
+
+
+def test_an_unknown_name_is_returned_unchanged_for_a_clear_error():
+    from verifygate.runner import resolve_executable
+    assert resolve_executable("definitely-not-a-command-xyz") == "definitely-not-a-command-xyz"

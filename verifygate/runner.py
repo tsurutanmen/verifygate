@@ -109,6 +109,20 @@ def shell(cmd: str, cwd: str, timeout: int = 1800,
                              "timed out after {}s".format(timeout))
 
 
+def resolve_executable(name: str) -> str:
+    """Full path to ``name``, so that a Windows shim is found.
+
+    Node tools install on Windows as ``name.CMD``. ``shutil.which`` applies
+    PATHEXT and finds it; a bare ``subprocess.run(["codex", ...])`` does not,
+    and fails with a FileNotFoundError that looks like the tool is missing when
+    it is on PATH and works fine from a shell. Found by running this against
+    the real Codex CLI for the first time.
+    """
+    if os.path.sep in name or (os.path.altsep and os.path.altsep in name):
+        return name
+    return shutil.which(name) or name
+
+
 def codex_command(spec: Spec, prompt_file: str) -> List[str]:
     """The default implementer: the Codex CLI, in exec mode."""
     cmd = ["codex", "exec", "--skip-git-repo-check"]
@@ -178,7 +192,8 @@ class Runner:
             self._save(res)
 
     def _invoke(self, spec: Spec, prompt: str, scope: str, prompt_file: str) -> CommandResult:
-        cmd = self.implementer or codex_command(spec, prompt_file)
+        cmd = list(self.implementer or codex_command(spec, prompt_file))
+        cmd[0] = resolve_executable(cmd[0])
         t0 = time.time()
         try:
             p = subprocess.run(cmd, cwd=scope, input=prompt, capture_output=True, text=True,
