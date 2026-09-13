@@ -122,6 +122,21 @@ def cmd_run(args) -> int:
 def cmd_list(args) -> int:
     runner = Runner(_store(args))
     ids = runner.list_runs()
+    if getattr(args, "json", False):
+        rows = []
+        for rid in ids:
+            try:
+                d = runner.load(rid)
+            except (OSError, ValueError):
+                continue
+            rows.append({
+                "run_id": d["run_id"], "passed": d["passed"],
+                "verified": d["verified"], "guards_passed": d["guards_passed"],
+                "insertions": d["insertions"], "deletions": d["deletions"],
+                "branch": d["branch"], "verify": d["spec"]["verify"],
+            })
+        _p(json.dumps(rows, ensure_ascii=False, indent=2))
+        return 0
     if not ids:
         _p("no runs in {}".format(runner.store))
         return 0
@@ -138,11 +153,19 @@ def cmd_list(args) -> int:
 
 def cmd_show(args) -> int:
     runner = Runner(_store(args))
+    as_json = getattr(args, "json", False)
     try:
         d = runner.load(args.run_id)
     except OSError:
-        _p("no such run: {}".format(args.run_id))
+        if as_json:
+            _p(json.dumps({"error": "no such run", "run_id": args.run_id}))
+        else:
+            _p("no such run: {}".format(args.run_id))
         return 2
+    if as_json:
+        # the stored record is the contract; do not rebuild it here
+        _p(json.dumps(d, ensure_ascii=False, indent=2))
+        return 0
     _p("{}  {}".format(d["run_id"], "PASSED" if d["passed"] else "held"))
     _p("  objective  {}".format(d["spec"]["objective"].splitlines()[0][:90]))
     _p("  verify     {}".format(d["spec"]["verify"]))
@@ -247,12 +270,14 @@ def build_parser() -> argparse.ArgumentParser:
     r.set_defaults(func=cmd_run)
 
     li = sub.add_parser("list", help="runs on record")
+    li.add_argument("--json", action="store_true", help="print the runs as a JSON array")
     li.set_defaults(func=cmd_list)
 
     s = sub.add_parser("show", help="what happened in a run")
     s.add_argument("run_id")
     s.add_argument("--diff", action="store_true")
     s.add_argument("--output", action="store_true", help="include the verify output")
+    s.add_argument("--json", action="store_true", help="print the run record as JSON and nothing else")
     s.set_defaults(func=cmd_show)
 
     a = sub.add_parser("accept", help="commit a run that passed")
