@@ -3,7 +3,7 @@
 **Delegate work to a coding agent only when a machine can tell you it was done.**
 
 ```
-pip install git+https://github.com/tsurutanmen/verifygate
+pip install verifygate
 ```
 
 ```
@@ -224,7 +224,7 @@ different number. That once turned 343 into 5466.
 ## Install
 
 ```
-pip install git+https://github.com/tsurutanmen/verifygate
+pip install verifygate
 ```
 
 Python 3.9+. No dependencies beyond the standard library and `git` on PATH.
